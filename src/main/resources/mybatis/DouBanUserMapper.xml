@@ -16,4 +16,9 @@
         #{intro}
         )
     </insert>
+
+    <select id="getUserByUserName" parameterType="string" resultType="spider.model.DouBanUser">
+        SELECT * FROM doubanuser
+        WHERE user_name = #{userName}
+    </select>
 </mapper>

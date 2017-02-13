@@ -124,7 +124,10 @@ public class DouBanUserPageProcessor implements PageProcessor {
                                     user.setIntro(intro);
 
                                     //插入数据库
-                                    douBanUserService.insertAndGetId(user);
+                                    //过滤重复数据
+                                    if(douBanUserService.getUserByUserName(user.getUserName()) == null) {
+                                        douBanUserService.insertAndGetId(user);
+                                    }
                                 }
                             }
                         }

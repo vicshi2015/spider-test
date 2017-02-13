@@ -19,4 +19,9 @@ public class DouBanUserService {
     {
         return douBanUserMapper.insertAndGetId(douBanUser);
     }
+
+    public DouBanUser getUserByUserName(String userName)
+    {
+        return douBanUserMapper.getUserByUserName(userName);
+    }
 }

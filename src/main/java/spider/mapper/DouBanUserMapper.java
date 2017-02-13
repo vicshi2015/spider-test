@@ -9,4 +9,6 @@ import spider.model.DouBanUser;
  */
 public interface DouBanUserMapper {
     public int insertAndGetId(DouBanUser user);
+
+    public DouBanUser getUserByUserName(String userName);
 }
