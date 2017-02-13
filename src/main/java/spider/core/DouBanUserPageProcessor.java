@@ -1,5 +1,6 @@
 package spider.core;
 
+import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.HttpClientUtils;
 import org.apache.log4j.Logger;
@@ -7,7 +8,9 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import spider.config.InitConfig;
 import spider.mapper.DouBanUserMapper;
+import spider.model.DouBanUser;
 import spider.service.DouBanUserService;
 import spider.util.HttpClientUtil;
 import us.codecraft.webmagic.Page;
@@ -15,6 +18,8 @@ import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.Spider;
 import us.codecraft.webmagic.processor.PageProcessor;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -64,7 +69,6 @@ public class DouBanUserPageProcessor implements PageProcessor {
         List<String> urlList = new ArrayList<String>();
 
         Document docList = null;
-        String newsIdFirst = "";
         String pageListStr = HttpClientUtil.getPage(pageUrl);
 
         if(StringUtils.isNotEmpty(pageListStr)){
@@ -79,7 +83,50 @@ public class DouBanUserPageProcessor implements PageProcessor {
                         //循环取详细数据
                         for (int i = 0; i < liTag.size(); i++)
                         {
+                            String contentUrl = "";
+                            String name = "", userName = "", address = "", headPortrait = "", joinTime = "", intro = "";
 
+                            Element obj = liTag.get(i);
+                            contentUrl = obj.getElementsByClass("pic").select("a").attr("href");
+                            name = liTag.get(i).getElementsByClass("name").select("a").text();
+
+                            if(StringUtils.isNotEmpty(contentUrl)) {
+                                String htmlStr = HttpClientUtil.getPage(contentUrl);
+
+                                Document docPage = Jsoup.parse(htmlStr);
+
+                                Element infoNode = docPage.getElementById("profile");
+
+                                if(infoNode != null)
+                                {
+                                    headPortrait = infoNode.getElementsByClass("basic-info").get(0).select("img").attr("src");
+
+                                    address = infoNode.getElementsByClass("basic-info").get(0)
+                                            .getElementsByClass("user-info")
+                                            .get(0).select("a").text();
+
+                                    Element joinTimeNode = infoNode.getElementsByClass("pl").first();
+
+                                    String joinTimeStr = joinTimeNode.text();
+
+                                    String joinTimeStrs[] = joinTimeStr.split(" ");
+
+                                    userName = joinTimeStrs[0];
+                                    joinTime = joinTimeStrs[1].substring(0,joinTimeStrs[1].length()-2).toString();
+                                    intro = infoNode.getElementById("intro_display").text();
+
+                                    DouBanUser user = new DouBanUser();
+                                    user.setName(name);
+                                    user.setUserName(userName);
+                                    user.setAddress(address);
+                                    user.setJoinTime(getTime(joinTime));
+                                    user.setHeadPortrait(headPortrait);
+                                    user.setIntro(intro);
+
+                                    //插入数据库
+                                    douBanUserService.insertAndGetId(user);
+                                }
+                            }
                         }
                     }
                 }
@@ -114,6 +161,19 @@ public class DouBanUserPageProcessor implements PageProcessor {
 
     public Site getSite() {
         return site;
+    }
+
+    private Date getTime(String joinTime)
+    {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Date date=null;
+        try {
+            date = sdf.parse(joinTime);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+
+        return date;
     }
 
     public static void main(String[] args) {

@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.httpclient.methods.GetMethod;
@@ -31,6 +33,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import spider.config.InitConfig;
 
 /**
  *
@@ -265,6 +268,12 @@ public class HttpClientUtil {
     public static String getPage(String url){
         String result="";
         HttpClient httpClient = new HttpClient();
+        HostConfiguration hostConfiguration = new HostConfiguration();
+        if(!InitConfig.proxyHost.isEmpty())
+        {
+            hostConfiguration.setProxy(InitConfig.proxyHost, InitConfig.proxyPort);
+            httpClient.setHostConfiguration(hostConfiguration);
+        }
         GetMethod getMethod = new GetMethod(url+"?date=" + new Date().getTime());//加时间戳，防止页面缓存
         try {
             int statusCode = httpClient.executeMethod(getMethod);
