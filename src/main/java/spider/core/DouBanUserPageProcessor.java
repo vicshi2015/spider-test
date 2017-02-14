@@ -36,7 +36,7 @@ public class DouBanUserPageProcessor implements PageProcessor {
     private Logger logger = Logger.getLogger(DouBanUserPageProcessor.class);
 
     //抓取网站相关配置，包括：编码，间隔时间，重试次数等
-    private        Site site = Site.me().setRetryTimes(10).setSleepTime(1000)
+    private        Site site = Site.me().setRetryTimes(10).setSleepTime(5000).setSleepTime(1000)
             .addHeader("Accept-Encoding", "/").setUserAgent(
                     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/54.0.2840.59 Safari/537.36");
     //人数
@@ -52,8 +52,8 @@ public class DouBanUserPageProcessor implements PageProcessor {
         try {
             //列表页
             if (page.getUrl().regex(index_list).match()) {
-                List<String> Urllist =new ArrayList<String>();
-                String url =page.getUrl().toString();
+                List<String> Urllist = new ArrayList<String>();
+                String url = page.getUrl().toString();
                 String pageUrl = url;
                 Urllist = saveDoubanUserDate(pageUrl);
                 page.addTargetRequests(Urllist);//添加地址，根据url对该地址处理
@@ -61,22 +61,24 @@ public class DouBanUserPageProcessor implements PageProcessor {
             //可增加else if 处理不同URL地址
         } catch (Exception e) {
             e.printStackTrace();
+            logger.error("DouBanUserPageProcessor-错误信息：process执行报错", e);
         }
     }
 
-    private List<String> saveDoubanUserDate(String pageUrl)
-    {
+    private List<String> saveDoubanUserDate(String pageUrl) {
+        logger.info(String.format("准备抓取页面：%s", pageUrl));
+
         List<String> urlList = new ArrayList<String>();
 
         Document docList = null;
         String pageListStr = HttpClientUtil.getPage(pageUrl);
 
-        if(StringUtils.isNotEmpty(pageListStr)){
+        if (StringUtils.isNotEmpty(pageListStr)) {
             try {
                 docList = Jsoup.parse(pageListStr);
                 Elements memberList = docList.getElementsByClass("member-list");
 
-                if(!memberList.isEmpty()){
+                if (!memberList.isEmpty()){
                     Elements liTag = memberList.get(2).getElementsByTag("li");
                     if(!liTag.isEmpty())
                     {
@@ -123,10 +125,16 @@ public class DouBanUserPageProcessor implements PageProcessor {
                                     user.setHeadPortrait(headPortrait);
                                     user.setIntro(intro);
 
+                                    logger.info(String.format("获取到用户数据：%s", user.toString()));
+
                                     //插入数据库
                                     //过滤重复数据
                                     if(douBanUserService.getUserByUserName(user.getUserName()) == null) {
                                         douBanUserService.insertAndGetId(user);
+                                    }
+                                    else
+                                    {
+                                        logger.info("过滤重复用户");
                                     }
                                 }
                             }
@@ -154,6 +162,7 @@ public class DouBanUserPageProcessor implements PageProcessor {
                 }
             } catch (Exception e) {
                 e.printStackTrace();
+                logger.error("DouBanUserPageProcessor-错误信息：", e);
             }
         }
 
@@ -174,6 +183,7 @@ public class DouBanUserPageProcessor implements PageProcessor {
             date = sdf.parse(joinTime);
         } catch (ParseException e) {
             e.printStackTrace();
+            logger.error("DouBanUserPageProcessor-错误信息：时间转换失败" + joinTime);
         }
 
         return date;
